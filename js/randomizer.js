@@ -1,11 +1,10 @@
 /**
  * randomizer.js — Smart Pokémon GBA Randomizer
  *
- * 5 Modos de randomización:
+ * 4 Modos de randomización:
  *   FULL           → Todo aleatorio, caótico
- *   PROGRESSIVE    → Salvajes + entrenadores por BST (±1 tier)
+ *   PROGRESSIVE    → Salvajes + entrenadores por BST (±1 tier) (RECOMENDADO)
  *   SEMI_PROG      → Solo salvajes por BST, entrenadores intactos
- *   SMART          → BST + tipos + roles similares (RECOMENDADO)
  *   EVOLUTIONS     → Randomiza cadenas evolutivas
  *
  * Opciones avanzadas:
@@ -99,52 +98,6 @@ const Randomizer = (() => {
         return speciesId;
     }
 
-    /** Reemplazo inteligente: BST similar + tipo similar + rol similar */
-    function getSmartReplacement(speciesId, romData, gameData, bstTable, typeTable, tierLists, rng) {
-        const bst = bstTable[speciesId] || 400;
-        const tierIdx = PokemonData.getTierIndex(bst);
-        const types = typeTable[speciesId] || [0, 0];
-        const role = PokemonData.getRole(romData, gameData, speciesId);
-
-        // Recoger candidatos del mismo tier y adyacentes
-        const candidates = [];
-        for (let t = Math.max(0, tierIdx - 1); t <= Math.min(PokemonData.TIERS.length - 1, tierIdx + 1); t++) {
-            if (tierLists[t]) candidates.push(...tierLists[t]);
-        }
-
-        if (candidates.length === 0) return speciesId;
-
-        // Puntuar cada candidato
-        const scored = candidates.map(id => {
-            let score = 0;
-            const cTypes = typeTable[id] || [0, 0];
-            const cRole = PokemonData.getRole(romData, gameData, id);
-
-            // +3 por compartir un tipo
-            if (cTypes[0] === types[0] || cTypes[0] === types[1] ||
-                cTypes[1] === types[0] || cTypes[1] === types[1]) {
-                score += 3;
-            }
-
-            // +2 por mismo rol
-            if (cRole === role) score += 2;
-
-            // +1 por mismo tier exacto
-            if (PokemonData.getTierIndex(bstTable[id]) === tierIdx) score += 1;
-
-            // Penalización si es el mismo Pokémon
-            if (id === speciesId) score -= 5;
-
-            return { id, score };
-        });
-
-        // Selección ponderada: mejores scores más probables
-        scored.sort((a, b) => b.score - a.score);
-        const topN = Math.max(3, Math.ceil(scored.length * 0.2));
-        const top = scored.slice(0, topN);
-
-        return rng.pick(top).id;
-    }
 
     // ==========================================
     //  GBA — Randomización de salvajes
@@ -506,27 +459,6 @@ const Randomizer = (() => {
         return stats;
     }
 
-    /** MODO 4: RANDOM INTELIGENTE — BST + tipos + roles (RECOMENDADO) */
-    function randomizeSmart(buffer, romData, gd, rng, options) {
-        const view = new DataView(buffer);
-        const bstTable = PokemonData.buildBSTTable(romData, gd);
-        const typeTable = PokemonData.buildTypeTable(romData, gd);
-        const tierLists = PokemonData.buildTierLists(romData, gd, options);
-
-        const replacer = (sp) => getSmartReplacement(sp, romData, gd, bstTable, typeTable, tierLists, rng);
-        const stats = {
-            wildPokemon: gbaWild(romData, view, gd, rng, replacer),
-            trainers: gbaTrainers(romData, view, gd, rng, replacer, options.extraDifficulty ? 1.15 : null),
-            starters: gbaRandomizeStarters(romData, gd, rng, bstTable, tierLists, options),
-            moves: 0, abilities: 0, evolutions: 0
-        };
-
-        if (options.randomMoves) stats.moves = gbaRandomizeMoves(romData, view, gd, rng);
-        if (options.randomAbilities) stats.abilities = gbaRandomizeAbilities(romData, gd, rng);
-        if (options.randomEvolutions) stats.evolutions = gbaRandomizeEvolutions(romData, view, gd, rng, options);
-
-        return stats;
-    }
 
     // ==========================================
     //  API PÚBLICA
@@ -571,7 +503,7 @@ const Randomizer = (() => {
         const seedStr = options.seed || generateSeed();
         const seedNum = seedToNumber(seedStr);
         const rng = new SeededRandom(seedNum);
-        const mode = options.mode || 'smart';
+        const mode = options.mode || 'progressive';
 
         if (onProgress) onProgress(10);
 
@@ -585,9 +517,6 @@ const Randomizer = (() => {
                 break;
             case 'semiProgressive':
                 stats = randomizeSemiProgressive(buffer, romData, gd, rng, options);
-                break;
-            case 'smart':
-                stats = randomizeSmart(buffer, romData, gd, rng, options);
                 break;
             default:
                 throw new Error(`Modo no válido: ${mode}`);
