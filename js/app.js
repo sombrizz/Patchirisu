@@ -37,6 +37,7 @@
         romDropZone: document.getElementById('romDropZone'),
         romFileInput: document.getElementById('romFileInput'),
         romInfoCard: document.getElementById('romInfoCard'),
+        btnReuploadROM: document.getElementById('btnReuploadROM'),
         romBadge: document.getElementById('romBadge'),
         romTitle: document.getElementById('romTitle'),
         romRegion: document.getElementById('romRegion'),
@@ -129,6 +130,7 @@
 
     function showROMInfo(info) {
         dom.romInfoCard.classList.remove('hidden');
+        dom.romDropZone.classList.add('hidden');
         dom.romBadge.textContent = info.format;
         dom.romTitle.textContent = info.title;
         dom.romRegion.textContent = '🌍 ' + info.region;
@@ -139,6 +141,17 @@
     function showROMStatus(text, type) {
         dom.romStatus.textContent = text;
         dom.romStatus.className = 'rom-status rom-status-' + type;
+    }
+
+    function reuploadROM() {
+        state.romBuffer = null;
+        state.romInfo = null;
+        state.romFileName = '';
+        dom.romInfoCard.classList.add('hidden');
+        dom.romDropZone.classList.remove('hidden');
+        dom.btnToStep2.classList.add('hidden');
+        dom.romStatus.textContent = '';
+        dom.patchUpload.classList.add('hidden');
     }
 
     async function handlePatchFile(file) {
@@ -335,6 +348,7 @@
         state.romFileName = '';
 
         dom.romInfoCard.classList.add('hidden');
+        dom.romDropZone.classList.remove('hidden');
         dom.btnToStep2.classList.add('hidden');
         dom.romStatus.textContent = '';
         dom.patchUpload.classList.add('hidden');
@@ -354,6 +368,8 @@
         if (e.target.files[0]) handleROMFile(e.target.files[0]);
     });
     FileHandler.setupDropZone(dom.romDropZone, handleROMFile);
+
+    dom.btnReuploadROM.addEventListener('click', reuploadROM);
 
     // Patch toggle
     dom.togglePatchBtn.addEventListener('click', () => {
