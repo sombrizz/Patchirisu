@@ -130,8 +130,8 @@ body::after {
     background: var(--bg-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    padding: 0.75rem 1.75rem;
-    border-radius: var(--radius-xl);
+    padding: 1.25rem 2.25rem 2.5rem 2.25rem;
+    border-radius: 50px;
     border: 1px solid var(--border-glass);
     border-top: 1px solid var(--border-highlight);
     box-shadow: 0 8px 24px rgba(0,0,0,0.25);
@@ -139,7 +139,7 @@ body::after {
     margin-left: auto; margin-right: auto;
 }
 .step-dot {
-    width: 40px; height: 40px;
+    width: 44px; height: 44px;
     border-radius: 50%;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
@@ -147,12 +147,12 @@ body::after {
     flex-direction: column; position: relative;
     transition: var(--transition-normal);
 }
-.step-dot span { font-size: 1.1rem; font-weight: 600; color: var(--text-muted); }
+.step-dot span { font-size: 1.2rem; font-weight: 700; color: var(--text-muted); }
 .step-dot small {
-    position: absolute; bottom: -28px;
-    font-size: 0.85rem; color: var(--text-secondary);
-    font-weight: 500; white-space: nowrap;
-    opacity: 0.7; transition: opacity 0.3s;
+    position: absolute; bottom: -32px;
+    font-size: 0.95rem; color: var(--text-secondary);
+    font-weight: 600; white-space: nowrap;
+    opacity: 0.8; transition: opacity 0.3s;
 }
 .step-dot.active {
     background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));

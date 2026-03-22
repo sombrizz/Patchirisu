@@ -6,7 +6,6 @@
     <meta name="description" content="Patchirisu — Herramienta inteligente y divertida para Pokémon GBA.">
     <title>Patchirisu</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
-
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -27,17 +26,16 @@
             <div class="step-line"></div>
             <div class="step-dot" data-step="2"><span>2</span><small>Opciones</small></div>
             <div class="step-line"></div>
-            <div class="step-dot" data-step="3"><span>3</span><small>Randomizar</small></div>
+            <div class="step-dot" data-step="3"><span>3</span><small>Generar</small></div>
         </div>
 
         <!-- ===================== STEP 1: ROM ===================== -->
         <section class="step-panel" id="step1">
-            <h2 class="step-title">📁 Selecciona tu ROM</h2>
+            <h2 class="step-title">Selecciona tu ROM</h2>
             <p class="step-desc">Arrastra o selecciona un archivo .gba de Pokémon</p>
 
             <div class="drop-zone" id="romDropZone">
                 <div class="drop-zone-content">
-                    <div class="drop-icon">🎮</div>
                     <p>Arrastra tu <strong>.gba</strong> aquí</p>
                     <span class="drop-hint">o haz clic para seleccionar</span>
                 </div>
@@ -47,7 +45,7 @@
             <!-- Patch opcional -->
             <div class="patch-section" id="patchSection">
                 <button class="btn-text" id="togglePatchBtn">
-                    ➕ Aplicar parche IPS/UPS/BPS (opcional)
+                    Aplicar parche IPS/UPS/BPS (opcional)
                 </button>
                 <div class="patch-upload hidden" id="patchUpload">
                     <div class="drop-zone drop-zone-sm" id="patchDropZone">
@@ -72,7 +70,7 @@
                 </div>
                 <div class="rom-status" id="romStatus"></div>
                 
-                <button class="btn-text btn-sm" id="btnReuploadROM" style="margin-top: 1.25rem; width: 100%;">🔄 Volver a subir ROM</button>
+                <button class="btn-text btn-sm" id="btnReuploadROM" style="margin-top: 1.25rem; width: 100%;">Volver a subir ROM</button>
             </div>
 
             <button class="btn-primary hidden" id="btnToStep2" disabled>
@@ -82,7 +80,7 @@
 
         <!-- ===================== STEP 2: OPTIONS ===================== -->
         <section class="step-panel hidden" id="step2">
-            <h2 class="step-title">⚡ Modo de Juego</h2>
+            <h2 class="step-title">Modo de Juego</h2>
             <p class="step-desc">Elige cómo quieres randomizar tu ROM</p>
 
             <!-- Mode Cards -->
@@ -90,7 +88,6 @@
                 <label class="mode-card" data-mode="smart">
                     <input type="radio" name="mode" value="smart" checked>
                     <div class="mode-indicator"></div>
-                    <div class="mode-emoji">🧠</div>
                     <div class="mode-name">Inteligente</div>
                     <div class="mode-desc">BST + tipos + roles similares. Balance perfecto.</div>
                     <span class="mode-badge recommended">RECOMENDADO</span>
@@ -99,7 +96,6 @@
                 <label class="mode-card" data-mode="progressive">
                     <input type="radio" name="mode" value="progressive">
                     <div class="mode-indicator"></div>
-                    <div class="mode-emoji">📈</div>
                     <div class="mode-name">Progresivo</div>
                     <div class="mode-desc">Reemplazos por BST similar. Salvajes + entrenadores.</div>
                 </label>
@@ -107,7 +103,6 @@
                 <label class="mode-card" data-mode="semiProgressive">
                     <input type="radio" name="mode" value="semiProgressive">
                     <div class="mode-indicator"></div>
-                    <div class="mode-emoji">🎯</div>
                     <div class="mode-name">Semi-Progresivo</div>
                     <div class="mode-desc">Solo salvajes cambian. Entrenadores intactos.</div>
                 </label>
@@ -115,7 +110,6 @@
                 <label class="mode-card" data-mode="full">
                     <input type="radio" name="mode" value="full">
                     <div class="mode-indicator"></div>
-                    <div class="mode-emoji">🎲</div>
                     <div class="mode-name">Total</div>
                     <div class="mode-desc">Caos completo. Todo aleatorio.</div>
                     <span class="mode-badge chaotic">CAÓTICO</span>
@@ -128,7 +122,7 @@
                     <input type="checkbox" id="optEvolutions">
                     <div class="toggle-switch"></div>
                     <div class="toggle-label">
-                        <span>🔄 Random Evoluciones</span>
+                        <span>Random Evoluciones</span>
                         <small>Cambia cadenas evolutivas (puede romper coherencia)</small>
                     </div>
                 </label>
@@ -136,30 +130,30 @@
 
             <!-- Advanced Options -->
             <details class="advanced-panel" id="advancedOptions">
-                <summary class="advanced-toggle">⚙️ Opciones avanzadas</summary>
+                <summary class="advanced-toggle">Opciones avanzadas</summary>
                 <div class="advanced-grid">
                     <label class="toggle-row">
                         <input type="checkbox" id="optMoves">
                         <div class="toggle-switch"></div>
-                        <span>🗡️ Random Movimientos</span>
+                        <span>Random Movimientos</span>
                     </label>
                     <label class="toggle-row">
                         <input type="checkbox" id="optAbilities">
                         <div class="toggle-switch"></div>
-                        <span>✨ Random Habilidades</span>
+                        <span>Random Habilidades</span>
                     </label>
                     <label class="toggle-row">
                         <input type="checkbox" id="optNoLegendaries">
                         <div class="toggle-switch"></div>
-                        <span>🚫 Sin Legendarios</span>
+                        <span>Sin Legendarios</span>
                     </label>
                     <label class="toggle-row">
                         <input type="checkbox" id="optDifficulty">
                         <div class="toggle-switch"></div>
-                        <span>💀 Dificultad Extra (+15% niveles)</span>
+                        <span>Dificultad Extra (+15% niveles)</span>
                     </label>
                     <div class="gen-selector">
-                        <span>🎮 Generación:</span>
+                        <span>Generación:</span>
                         <select id="optGenFilter">
                             <option value="">Todas (1-3)</option>
                             <option value="1">Solo Gen 1</option>
@@ -172,24 +166,24 @@
 
             <!-- Seed -->
             <div class="seed-section">
-                <label class="seed-label">🎲 Seed</label>
+                <label class="seed-label">Seed</label>
                 <div class="seed-input-group">
                     <input type="text" id="seedInput" class="seed-input" placeholder="Auto-generada" maxlength="9">
-                    <button class="btn-icon" id="btnNewSeed" title="Nueva seed">🔄</button>
-                    <button class="btn-icon" id="btnCopySeed" title="Copiar seed">📋</button>
+                    <button class="btn-icon btn-sm" id="btnNewSeed" title="Nueva seed">🔄</button>
+                    <button class="btn-icon btn-sm" id="btnCopySeed" title="Copiar seed">📋</button>
                 </div>
                 <small class="seed-hint">Misma seed + misma ROM = mismo resultado</small>
             </div>
 
             <div class="step-buttons">
                 <button class="btn-secondary" id="btnBackToStep1">← Atrás</button>
-                <button class="btn-primary" id="btnToStep3">Empezar 🚀</button>
+                <button class="btn-primary" id="btnToStep3">Empezar</button>
             </div>
         </section>
 
         <!-- ===================== STEP 3: PROCESS ===================== -->
         <section class="step-panel hidden" id="step3">
-            <h2 class="step-title" id="processTitle">🚀 Randomizando…</h2>
+            <h2 class="step-title" id="processTitle">Randomizando…</h2>
             <p class="step-desc" id="processStatus">Procesando tu ROM</p>
 
             <!-- Progress -->
@@ -205,8 +199,7 @@
 
             <!-- Result (hidden initially) -->
             <div class="result-card hidden" id="resultCard">
-                <div class="result-icon">✅</div>
-                <h3>¡ROM randomizada!</h3>
+                <h3>Tu ROM está lista</h3>
                 <div class="result-stats" id="resultStats"></div>
                 <div class="result-seed">
                     <span>Seed:</span>
@@ -222,18 +215,17 @@
                 </div>
 
                 <button class="btn-primary btn-download" id="btnDownload">
-                    💾 Descargar ROM
+                    Descargar ROM
                 </button>
             </div>
 
             <!-- Error (hidden) -->
             <div class="error-card hidden" id="errorCard">
-                <div class="result-icon">❌</div>
                 <h3>Error</h3>
                 <p id="errorText"></p>
             </div>
 
-            <button class="btn-secondary" id="btnRestart">🔄 Empezar de nuevo</button>
+            <button class="btn-secondary" id="btnRestart">Empezar de nuevo</button>
         </section>
 
         <!-- ===================== SEO SECTION ===================== -->

@@ -112,15 +112,15 @@
             showROMInfo(state.romInfo);
 
             if (state.romInfo.isRandomizerCompatible) {
-                showROMStatus('✅ ROM compatible con el randomizador', 'success');
+                showROMStatus('ROM compatible con el randomizador', 'success');
                 dom.btnToStep2.classList.remove('hidden');
                 dom.btnToStep2.disabled = false;
             } else if (state.romInfo.isPokemon) {
-                showROMStatus('⚠️ ROM Pokémon detectada pero no soportada por el randomizador', 'warning');
+                showROMStatus('ROM Pokémon detectada pero no soportada por el randomizador', 'warning');
                 dom.btnToStep2.classList.remove('hidden');
                 dom.btnToStep2.disabled = true;
             } else {
-                showROMStatus('❌ No es una ROM Pokémon GBA soportada', 'error');
+                showROMStatus('No es una ROM Pokémon GBA soportada', 'error');
                 dom.btnToStep2.classList.add('hidden');
             }
         } catch (err) {
@@ -133,9 +133,9 @@
         dom.romDropZone.classList.add('hidden');
         dom.romBadge.textContent = info.format;
         dom.romTitle.textContent = info.title;
-        dom.romRegion.textContent = '🌍 ' + info.region;
-        dom.romSize.textContent = '💾 ' + RomDetector.formatFileSize(info.fileSize);
-        dom.romCode.textContent = '🏷️ ' + info.gameCode;
+        dom.romRegion.textContent = info.region;
+        dom.romSize.textContent = RomDetector.formatFileSize(info.fileSize);
+        dom.romCode.textContent = info.gameCode;
     }
 
     function showROMStatus(text, type) {
@@ -167,7 +167,7 @@
                 state.patchBuffer = null;
                 return;
             }
-            showROMStatus('✅ Parche ' + state.patchFormat + ' cargado (' +
+            showROMStatus('Parche ' + state.patchFormat + ' cargado (' +
                 RomDetector.formatFileSize(state.patchBuffer.byteLength) + ')', 'success');
         } catch (err) {
             showROMStatus('Error al cargar parche: ' + err.message, 'error');
@@ -217,7 +217,7 @@
         dom.logBox.innerHTML = '';
         dom.resultCard.classList.add('hidden');
         dom.errorCard.classList.add('hidden');
-        dom.processTitle.textContent = '🚀 Randomizando…';
+        dom.processTitle.textContent = 'Randomizando…';
         dom.processStatus.textContent = 'Procesando tu ROM';
         setProgress(0);
 
@@ -278,27 +278,18 @@
             );
 
             setProgress(95);
-            addLog('✅ Randomización completada');
+            addLog('Randomización completada');
 
             // 4. Mostrar resultado
             state.patchedBuffer = result.buffer;
             state.resultSeed = result.seed;
 
-            // Stats
-            const s = result.stats;
-            let statsHTML = '<div class="stats-grid">';
-            statsHTML += `<div class="stat-item"><span class="stat-num">${s.wildPokemon}</span><span class="stat-label">Salvajes</span></div>`;
-            statsHTML += `<div class="stat-item"><span class="stat-num">${s.trainers}</span><span class="stat-label">Entrenadores</span></div>`;
-            if (s.moves) statsHTML += `<div class="stat-item"><span class="stat-num">${s.moves}</span><span class="stat-label">Movimientos</span></div>`;
-            if (s.abilities) statsHTML += `<div class="stat-item"><span class="stat-num">${s.abilities}</span><span class="stat-label">Habilidades</span></div>`;
-            if (s.evolutions) statsHTML += `<div class="stat-item"><span class="stat-num">${s.evolutions}</span><span class="stat-label">Evoluciones</span></div>`;
-            if (s.starters) statsHTML += `<div class="stat-item"><span class="stat-num">${s.starters > 0 ? 3 : 0}</span><span class="stat-label">Iniciales</span></div>`;
-            statsHTML += '</div>';
+            // Stats removidas a petición del usuario.
+            dom.resultStats.innerHTML = '';
 
-            dom.resultStats.innerHTML = statsHTML;
             dom.resultSeed.textContent = result.seed;
 
-            dom.processTitle.textContent = '✅ ¡Listo!';
+            dom.processTitle.textContent = 'Tu ROM está lista';
             dom.processStatus.textContent = result.gameName + ' — ' + result.mode;
             dom.resultCard.classList.remove('hidden');
             setProgress(100);
@@ -314,7 +305,7 @@
         } catch (err) {
             console.error('Randomization error:', err);
             addLog('ERROR: ' + err.message, 'error');
-            dom.processTitle.textContent = '❌ Error';
+            dom.processTitle.textContent = 'Error';
             dom.processStatus.textContent = 'Algo salió mal';
             dom.errorCard.classList.remove('hidden');
             dom.errorText.textContent = err.message;

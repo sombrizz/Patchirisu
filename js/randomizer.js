@@ -193,17 +193,21 @@ const Randomizer = (() => {
     function gbaTrainers(data, view, gd, rng, replacer, scaleLevels) {
         if (!gd.trainerDataPtr) return 0;
         let count = 0;
+        let trainersModified = 0;
 
         for (let i = 0; i < gd.trainerCount; i++) {
             const off = gd.trainerDataPtr + (i * 40);
             if (off + 40 > data.length) break;
 
             const structType = data[off];
-            const numPkm = view.getUint32(off + 32, true);
+            // En GBA partySize es uint8. Leer Uint32 provocaría leer basura en el padding y saltarse entrenadores.
+            const numPkm = data[off + 32]; 
             const partyPtr = PokemonData.readGBAPointer(view, off + 36);
             if (!partyPtr || partyPtr >= data.length || numPkm === 0 || numPkm > 6) continue;
 
-            const entrySize = (structType & 0x02) ? 16 : 8;
+            // El tamaño de la estructura de cada Pokémon del entrenador depende de si tiene CUSTOM MOVES (bit 0 = 0x01)
+            const entrySize = (structType & 0x01) ? 16 : 8;
+            let modifiedThisTrainer = false;
 
             for (let j = 0; j < numPkm; j++) {
                 const pOff = partyPtr + (j * entrySize);
@@ -212,6 +216,7 @@ const Randomizer = (() => {
                 if (sp > 0 && sp <= gd.numPokemon) {
                     view.setUint16(pOff + 4, replacer(sp), true);
                     count++;
+                    modifiedThisTrainer = true;
                 }
                 // Escalado de niveles
                 if (scaleLevels) {
@@ -222,8 +227,9 @@ const Randomizer = (() => {
                     }
                 }
             }
+            if (modifiedThisTrainer) trainersModified++;
         }
-        return count;
+        return trainersModified;
     }
 
     // ==========================================
