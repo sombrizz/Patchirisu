@@ -1,687 +1,392 @@
 /**
- * app.js
- * Controlador principal de la aplicación PatchMaster
- * Orquesta el flujo del wizard: ROM → Parche → Opciones → Parchear & Descargar
+ * app.js — Smart Pokémon GBA Randomizer Controller
+ *
+ * Flujo de 3 pasos:
+ *   1. ROM (+ parche opcional)
+ *   2. Opciones (modo, toggles, seed)
+ *   3. Procesar & Descargar
  */
 
-(function () {
+(() => {
     'use strict';
 
     // ==========================================
-    // Estado de la aplicación
+    //  Estado de la aplicación
     // ==========================================
     const state = {
-        currentStep: 1,
-        romFile: null,
         romBuffer: null,
         romInfo: null,
-        patchFile: null,
         patchBuffer: null,
         patchFormat: null,
-        patchedBuffer: null,
-        outputFileName: 'rom_parcheada',
+        patchedBuffer: null,       // resultado final para descargar
+        resultSeed: null,
+        romFileName: ''
     };
 
     // ==========================================
-    // Referencias DOM
+    //  Referencias DOM
     // ==========================================
-    const $ = (id) => document.getElementById(id);
-
     const dom = {
-        // Step indicator
-        stepIndicator: $('stepIndicator'),
+        // Steps
+        step1: document.getElementById('step1'),
+        step2: document.getElementById('step2'),
+        step3: document.getElementById('step3'),
+        stepDots: document.querySelectorAll('.step-dot'),
 
-        // Step panels
-        step1: $('step1'),
-        step2: $('step2'),
-        step3: $('step3'),
-        step4: $('step4'),
+        // Step 1
+        romDropZone: document.getElementById('romDropZone'),
+        romFileInput: document.getElementById('romFileInput'),
+        romInfoCard: document.getElementById('romInfoCard'),
+        romBadge: document.getElementById('romBadge'),
+        romTitle: document.getElementById('romTitle'),
+        romRegion: document.getElementById('romRegion'),
+        romSize: document.getElementById('romSize'),
+        romCode: document.getElementById('romCode'),
+        romStatus: document.getElementById('romStatus'),
+        btnToStep2: document.getElementById('btnToStep2'),
+        togglePatchBtn: document.getElementById('togglePatchBtn'),
+        patchUpload: document.getElementById('patchUpload'),
+        patchDropZone: document.getElementById('patchDropZone'),
+        patchFileInput: document.getElementById('patchFileInput'),
 
-        // Step 1: ROM
-        romDropZone: $('romDropZone'),
-        romFileInput: $('romFileInput'),
-        romInfoCard: $('romInfoCard'),
-        romFileName: $('romFileName'),
-        romFormat: $('romFormat'),
-        romGameTitle: $('romGameTitle'),
-        romGameCode: $('romGameCode'),
-        romRegion: $('romRegion'),
-        romSize: $('romSize'),
-        romChecksum: $('romChecksum'),
-        romWarning: $('romWarning'),
-        romWarningText: $('romWarningText'),
-        romRemoveBtn: $('romRemoveBtn'),
-        step1Next: $('step1Next'),
+        // Step 2
+        btnBackToStep1: document.getElementById('btnBackToStep1'),
+        btnToStep3: document.getElementById('btnToStep3'),
+        seedInput: document.getElementById('seedInput'),
+        btnNewSeed: document.getElementById('btnNewSeed'),
+        btnCopySeed: document.getElementById('btnCopySeed'),
+        optEvolutions: document.getElementById('optEvolutions'),
+        optMoves: document.getElementById('optMoves'),
+        optAbilities: document.getElementById('optAbilities'),
+        optNoLegendaries: document.getElementById('optNoLegendaries'),
+        optDifficulty: document.getElementById('optDifficulty'),
+        optGenFilter: document.getElementById('optGenFilter'),
 
-        // Step 2: Patch
-        patchDropZone: $('patchDropZone'),
-        patchFileInput: $('patchFileInput'),
-        patchInfoCard: $('patchInfoCard'),
-        patchFileName: $('patchFileName'),
-        patchFormat: $('patchFormat'),
-        patchSize: $('patchSize'),
-        patchWarning: $('patchWarning'),
-        patchWarningText: $('patchWarningText'),
-        patchRemoveBtn: $('patchRemoveBtn'),
-        step2Back: $('step2Back'),
-        step2Skip: $('step2Skip'),
-        step2Next: $('step2Next'),
-
-        // Step 3: Options
-        randomizerToggle: $('randomizerToggle'),
-        randomizerOptions: $('randomizerOptions'),
-        randomizerUnsupported: $('randomizerUnsupported'),
-        modeWarning: $('modeWarning'),
-        modeWarningText: $('modeWarningText'),
-        modeSummaryList: $('modeSummaryList'),
-        outputFileName: $('outputFileName'),
-        outputExt: $('outputExt'),
-        step3Back: $('step3Back'),
-        step3Next: $('step3Next'),
-
-        // Step 4: Patch
-        patchStatusText: $('patchStatusText'),
-        progressFill: $('progressFill'),
-        progressPercent: $('progressPercent'),
-        patchLog: $('patchLog'),
-        successCard: $('successCard'),
-        successInfo: $('successInfo'),
-        downloadBtn: $('downloadBtn'),
-        errorCard: $('errorCard'),
-        errorText: $('errorText'),
-        step4Reset: $('step4Reset'),
-
-        // Modal
-        limitationsModal: $('limitationsModal'),
-        modalClose: $('modalClose'),
-        showLimitations: $('showLimitations'),
-
-        // Background
-        bgParticles: $('bgParticles'),
+        // Step 3
+        processTitle: document.getElementById('processTitle'),
+        processStatus: document.getElementById('processStatus'),
+        progressFill: document.getElementById('progressFill'),
+        progressText: document.getElementById('progressText'),
+        logBox: document.getElementById('logBox'),
+        resultCard: document.getElementById('resultCard'),
+        resultStats: document.getElementById('resultStats'),
+        resultSeed: document.getElementById('resultSeed'),
+        errorCard: document.getElementById('errorCard'),
+        errorText: document.getElementById('errorText'),
+        btnDownload: document.getElementById('btnDownload'),
+        btnRestart: document.getElementById('btnRestart'),
+        btnCopyResultSeed: document.getElementById('btnCopyResultSeed')
     };
 
     // ==========================================
-    // Inicialización
+    //  Navegación entre pasos
     // ==========================================
-    function init() {
-        createParticles();
-        setupFileHandlers();
-        setupNavigation();
-        setupOptions();
-        setupModal();
+    function showStep(n) {
+        [dom.step1, dom.step2, dom.step3].forEach((el, i) => {
+            el.classList.toggle('hidden', i !== n - 1);
+        });
+        dom.stepDots.forEach((dot, i) => {
+            dot.classList.toggle('active', i < n);
+            dot.classList.toggle('current', i === n - 1);
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // ==========================================
-    // Partículas de fondo
+    //  STEP 1: Carga de ROM + Parche opcional
     // ==========================================
-    function createParticles() {
-        const colors = ['#e74055', '#3b82f6', '#f59e0b', '#8b5cf6', '#10b981'];
-        for (let i = 0; i < 20; i++) {
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            const size = Math.random() * 4 + 2;
-            const color = colors[Math.floor(Math.random() * colors.length)];
-            particle.style.cssText = `
-                width: ${size}px;
-                height: ${size}px;
-                background: ${color};
-                left: ${Math.random() * 100}%;
-                animation-duration: ${Math.random() * 15 + 10}s;
-                animation-delay: ${Math.random() * 10}s;
-            `;
-            dom.bgParticles.appendChild(particle);
-        }
-    }
 
-    // ==========================================
-    // Manejo de archivos
-    // ==========================================
-    function setupFileHandlers() {
-        // ROM Drop Zone
-        FileHandler.setupDropZone(
-            dom.romDropZone,
-            dom.romFileInput,
-            FileHandler.isValidROM,
-            handleRomFile,
-            (err) => showToast(err, 'error')
-        );
-
-        // Patch Drop Zone
-        FileHandler.setupDropZone(
-            dom.patchDropZone,
-            dom.patchFileInput,
-            FileHandler.isValidPatch,
-            handlePatchFile,
-            (err) => showToast(err, 'error')
-        );
-
-        // Remove buttons
-        dom.romRemoveBtn.addEventListener('click', removeRom);
-        dom.patchRemoveBtn.addEventListener('click', removePatch);
-    }
-
-    function handleRomFile(file, buffer) {
-        state.romFile = file;
-        state.romBuffer = buffer;
-
-        // Detectar información de la ROM
-        const ext = FileHandler.getExtension(file.name);
-        state.romInfo = RomDetector.detect(buffer, ext);
-
-        // Mostrar info
-        dom.romDropZone.classList.add('has-file');
-        dom.romInfoCard.classList.remove('hidden');
-
-        dom.romFileName.textContent = file.name;
-        dom.romFormat.textContent = state.romInfo.format;
-        dom.romGameTitle.textContent = state.romInfo.title;
-        dom.romGameCode.textContent = state.romInfo.gameCode;
-        dom.romRegion.textContent = state.romInfo.region;
-        dom.romSize.textContent = RomDetector.formatFileSize(state.romInfo.fileSize);
-        dom.romChecksum.textContent = state.romInfo.checksum + (state.romInfo.checksumPartial ? ' (parcial)' : '');
-
-        // Mostrar warnings
-        if (state.romInfo.warning) {
-            dom.romWarning.classList.remove('hidden');
-            dom.romWarningText.textContent = state.romInfo.warning;
-        } else {
-            dom.romWarning.classList.add('hidden');
-        }
-
-        // Habilitar siguiente
-        dom.step1Next.disabled = false;
-
-        // Configurar nombre de salida
-        const baseName = file.name.replace(/\.[^.]+$/, '');
-        dom.outputFileName.value = baseName + '_parcheado';
-        dom.outputExt.textContent = '.' + ext;
-    }
-
-    function removeRom() {
-        state.romFile = null;
-        state.romBuffer = null;
-        state.romInfo = null;
-
-        dom.romDropZone.classList.remove('has-file');
-        dom.romInfoCard.classList.add('hidden');
-        dom.romWarning.classList.add('hidden');
-        dom.step1Next.disabled = true;
-    }
-
-    function handlePatchFile(file, buffer) {
-        state.patchFile = file;
-        state.patchBuffer = buffer;
-
-        // Detectar formato del parche por contenido
-        state.patchFormat = FileHandler.detectPatchFormat(buffer);
-
-        // Si no se detectó por contenido, usar extensión
-        if (!state.patchFormat) {
-            const ext = FileHandler.getExtension(file.name);
-            const extMap = {
-                'ips': 'IPS', 'ups': 'UPS', 'bps': 'BPS',
-                'xdelta': 'XDELTA', 'xdelta3': 'XDELTA', 'vcdiff': 'XDELTA'
-            };
-            state.patchFormat = extMap[ext] || null;
-        }
-
-        if (!state.patchFormat) {
-            showToast('No se pudo detectar el formato del parche', 'error');
+    async function handleROMFile(file) {
+        if (!FileHandler.isROM(file.name)) {
+            showROMStatus('Solo se aceptan archivos .gba', 'error');
             return;
         }
 
-        // Mostrar info
-        dom.patchDropZone.classList.add('has-file');
-        dom.patchInfoCard.classList.remove('hidden');
+        try {
+            state.romBuffer = await FileHandler.readFile(file);
+            state.romFileName = file.name;
+            const ext = FileHandler.getExtension(file.name);
+            state.romInfo = RomDetector.detect(state.romBuffer, ext);
 
-        dom.patchFileName.textContent = file.name;
-        dom.patchFormat.textContent = state.patchFormat;
-        dom.patchSize.textContent = RomDetector.formatFileSize(buffer.byteLength);
+            showROMInfo(state.romInfo);
 
-        // Verificar compatibilidad con ROM
-        if (state.romInfo) {
-            const isLargeFile = state.romInfo.fileSize > 100 * 1024 * 1024; // >100MB
-            if (isLargeFile && state.patchFormat !== 'XDELTA') {
-                dom.patchWarning.classList.remove('hidden');
-                dom.patchWarningText.textContent = 'Para archivos ROM grandes, se recomienda usar parches XDELTA.';
+            if (state.romInfo.isRandomizerCompatible) {
+                showROMStatus('✅ ROM compatible con el randomizador', 'success');
+                dom.btnToStep2.classList.remove('hidden');
+                dom.btnToStep2.disabled = false;
+            } else if (state.romInfo.isPokemon) {
+                showROMStatus('⚠️ ROM Pokémon detectada pero no soportada por el randomizador', 'warning');
+                dom.btnToStep2.classList.remove('hidden');
+                dom.btnToStep2.disabled = true;
             } else {
-                dom.patchWarning.classList.add('hidden');
+                showROMStatus('❌ No es una ROM Pokémon GBA soportada', 'error');
+                dom.btnToStep2.classList.add('hidden');
             }
+        } catch (err) {
+            showROMStatus('Error: ' + err.message, 'error');
         }
-
-        dom.step2Next.disabled = false;
     }
 
-    function removePatch() {
-        state.patchFile = null;
-        state.patchBuffer = null;
-        state.patchFormat = null;
-
-        dom.patchDropZone.classList.remove('has-file');
-        dom.patchInfoCard.classList.add('hidden');
-        dom.patchWarning.classList.add('hidden');
-        dom.step2Next.disabled = true;
+    function showROMInfo(info) {
+        dom.romInfoCard.classList.remove('hidden');
+        dom.romBadge.textContent = info.format;
+        dom.romTitle.textContent = info.title;
+        dom.romRegion.textContent = '🌍 ' + info.region;
+        dom.romSize.textContent = '💾 ' + RomDetector.formatFileSize(info.fileSize);
+        dom.romCode.textContent = '🏷️ ' + info.gameCode;
     }
 
-    // ==========================================
-    // Navegación
-    // ==========================================
-    function setupNavigation() {
-        dom.step1Next.addEventListener('click', () => goToStep(2));
-        dom.step2Back.addEventListener('click', () => goToStep(1));
-        
-        dom.step2Skip.addEventListener('click', () => {
-            // Limpiar parche y forzar ir a opciones para "solo randomizar"
-            removePatch();
-            const supported = state.romInfo && Randomizer.isSupported(state.romInfo.gameCode);
-            if (supported) {
-                goToStep(3);
-                // Activar el randomizador automáticamente para conveniencia
-                dom.randomizerToggle.checked = true;
-                dom.randomizerOptions.classList.remove('hidden');
-                updateModeUI();
-                dom.step3NextLabel.textContent = 'Randomizar';
-            } else {
-                showToast('Esta ROM no soporta randomización. Debes subir un parche.', 'error');
+    function showROMStatus(text, type) {
+        dom.romStatus.textContent = text;
+        dom.romStatus.className = 'rom-status rom-status-' + type;
+    }
+
+    async function handlePatchFile(file) {
+        if (!FileHandler.isPatch(file.name)) {
+            showROMStatus('Solo se aceptan parches .ips, .ups o .bps', 'error');
+            return;
+        }
+        try {
+            state.patchBuffer = await FileHandler.readFile(file);
+            state.patchFormat = FileHandler.detectPatchFormat(state.patchBuffer);
+            if (!state.patchFormat) {
+                showROMStatus('Formato de parche no reconocido', 'error');
+                state.patchBuffer = null;
+                return;
             }
-        });
-
-        dom.step2Next.addEventListener('click', () => {
-            goToStep(3);
-            dom.step3NextLabel.textContent = 'Aplicar Parche';
-        });
-        dom.step3Back.addEventListener('click', () => goToStep(2));
-        dom.step3Next.addEventListener('click', () => {
-            goToStep(4);
-            startPatching();
-        });
-        dom.step4Reset.addEventListener('click', resetAll);
-    }
-
-    function goToStep(step) {
-        // Actualizar paneles
-        document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
-        const panel = document.getElementById('step' + step);
-        if (panel) panel.classList.add('active');
-
-        // Actualizar indicador
-        const items = document.querySelectorAll('.step-item');
-        const lines = document.querySelectorAll('.step-line');
-
-        items.forEach((item, idx) => {
-            const stepNum = idx + 1;
-            item.classList.remove('active', 'completed');
-            if (stepNum === step) {
-                item.classList.add('active');
-            } else if (stepNum < step) {
-                item.classList.add('completed');
-            }
-        });
-
-        lines.forEach((line, idx) => {
-            line.classList.toggle('active', idx < step - 1);
-        });
-
-        state.currentStep = step;
-
-        // Configurar opciones del step 3 según la ROM cargada
-        if (step === 3) {
-            updateRandomizerAvailability();
+            showROMStatus('✅ Parche ' + state.patchFormat + ' cargado (' +
+                RomDetector.formatFileSize(state.patchBuffer.byteLength) + ')', 'success');
+        } catch (err) {
+            showROMStatus('Error al cargar parche: ' + err.message, 'error');
         }
     }
 
     // ==========================================
-    // Opciones (Step 3) — Randomizador Avanzado
+    //  STEP 2: Seed management
     // ==========================================
-    const MODE_INFO = {
-        progressive: {
-            warning: 'Los Pokémon se reemplazan por otros de stats similares (BST). Mantiene la progresión natural del juego. Los movimientos e ítems no se tocan para mantener la experiencia equilibrada.',
-            summary: [
-                '✅ Pokémon salvajes: <strong>Aleatorios por BST similar</strong>',
-                '✅ Entrenadores: <strong>Aleatorios por BST similar</strong>',
-                '❌ Ítems / Movimientos: <strong>No implementado</strong>',
-                '✅ Restricción BST: <strong>Sí (5 tiers)</strong>',
-            ],
-        },
-        semiProgressive: {
-            warning: 'La opción más equilibrada. Salvajes por BST similar, entrenadores intactos.',
-            summary: [
-                '✅ Pokémon salvajes: <strong>Aleatorios por BST similar</strong>',
-                '🔒 Entrenadores: <strong>Originales (no se tocan)</strong>',
-                '❌ Ítems / Movimientos: <strong>No implementado</strong>',
-                '✅ Restricción BST: <strong>Sí (5 tiers)</strong>',
-            ],
-        },
-    };
 
-    function setupOptions() {
-        // Toggle principal
-        dom.randomizerToggle.addEventListener('change', () => {
-            if (dom.randomizerToggle.checked) {
-                if (state.romInfo && Randomizer.isSupported(state.romInfo.gameCode)) {
-                    dom.randomizerOptions.classList.remove('hidden');
-                    dom.randomizerUnsupported.classList.add('hidden');
-                    updateModeUI();
-                } else {
-                    dom.randomizerOptions.classList.add('hidden');
-                    dom.randomizerUnsupported.classList.remove('hidden');
-                    dom.randomizerToggle.checked = false;
-                }
-            } else {
-                dom.randomizerOptions.classList.add('hidden');
-            }
-        });
-
-        // Radio button mode changes
-        document.querySelectorAll('input[name="randMode"]').forEach(radio => {
-            radio.addEventListener('change', updateModeUI);
-        });
+    function newSeed() {
+        dom.seedInput.value = Randomizer.generateSeed();
     }
 
-    function getSelectedMode() {
-        const checked = document.querySelector('input[name="randMode"]:checked');
-        return checked ? checked.value : 'progressive';
-    }
-
-    function updateModeUI() {
-        const mode = getSelectedMode();
-        const info = MODE_INFO[mode];
-        if (!info) return;
-
-        // Update warning
-        dom.modeWarningText.textContent = info.warning;
-
-        // Update summary list
-        dom.modeSummaryList.innerHTML = info.summary.map(s => `<li>${s}</li>`).join('');
-    }
-
-    function updateRandomizerAvailability() {
-        const supported = state.romInfo && Randomizer.isSupported(state.romInfo.gameCode);
-        if (!supported) {
-            dom.randomizerToggle.checked = false;
-            dom.randomizerOptions.classList.add('hidden');
-            dom.randomizerUnsupported.classList.remove('hidden');
-        } else {
-            dom.randomizerUnsupported.classList.add('hidden');
+    function copySeed(inputEl) {
+        const text = inputEl.value || inputEl.textContent;
+        if (text && navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = inputEl.style.borderColor;
+                inputEl.style.borderColor = 'var(--accent-green)';
+                setTimeout(() => { inputEl.style.borderColor = orig; }, 500);
+            });
         }
     }
 
     // ==========================================
-    // Parcheo (Step 4)
+    //  STEP 3: Randomización
     // ==========================================
-    function addLog(text, type = '') {
-        const entry = document.createElement('div');
-        entry.className = 'log-entry' + (type ? ' ' + type : '');
-        entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
-        dom.patchLog.appendChild(entry);
-        dom.patchLog.scrollTop = dom.patchLog.scrollHeight;
+
+    function addLog(text, type) {
+        const line = document.createElement('div');
+        line.className = 'log-line' + (type ? ' log-' + type : '');
+        const time = new Date().toLocaleTimeString('es-ES', { hour12: false });
+        line.textContent = `[${time}] ${text}`;
+        dom.logBox.appendChild(line);
+        dom.logBox.scrollTop = dom.logBox.scrollHeight;
     }
 
-    function setProgress(percent) {
-        dom.progressFill.style.width = percent + '%';
-        dom.progressPercent.textContent = Math.round(percent) + '%';
+    function setProgress(pct) {
+        const p = Math.max(0, Math.min(100, Math.round(pct)));
+        dom.progressFill.style.width = p + '%';
+        dom.progressText.textContent = p + '%';
     }
 
-    async function startPatching() {
-        // Reset UI
-        dom.patchLog.innerHTML = '';
-        dom.successCard.classList.add('hidden');
+    async function startRandomization() {
+        // Limpiar estado
+        dom.logBox.innerHTML = '';
+        dom.resultCard.classList.add('hidden');
         dom.errorCard.classList.add('hidden');
+        dom.processTitle.textContent = '🚀 Randomizando…';
+        dom.processStatus.textContent = 'Procesando tu ROM';
         setProgress(0);
 
         try {
-            const onlyRandomize = !state.patchFile;
+            let romBuffer = state.romBuffer;
 
-            addLog(onlyRandomize ? 'Iniciando proceso de randomización...' : 'Iniciando proceso de parcheo...', 'info');
-            dom.patchStatusText.textContent = onlyRandomize ? 'Preparando...' : 'Aplicando parche...';
-
-            addLog(`ROM: ${state.romFile.name} (${RomDetector.formatFileSize(state.romBuffer.byteLength)})`, 'info');
-            
-            if (!onlyRandomize) {
-                addLog(`Parche: ${state.patchFile.name} (${state.patchFormat})`, 'info');
-            }
-
-            // Pequeña espera para que la UI se actualice
-            await sleep(100);
-
-            let patchedBuffer = state.romBuffer.slice(0); // Copia inicial
-            const progressCallback = (p) => setProgress(p * 0.7); // 70% para el parcheo
-
-            if (!onlyRandomize) {
-                addLog(`Aplicando parche ${state.patchFormat}...`);
+            // 1. Aplicar parche si hay
+            if (state.patchBuffer && state.patchFormat) {
+                addLog('Aplicando parche ' + state.patchFormat + '…');
+                setProgress(5);
 
                 switch (state.patchFormat) {
                     case 'IPS':
-                        patchedBuffer = PatchIPS.apply(state.romBuffer, state.patchBuffer, progressCallback);
+                        romBuffer = PatchIPS.apply(romBuffer, state.patchBuffer);
                         break;
                     case 'UPS':
-                        patchedBuffer = PatchUPS.apply(state.romBuffer, state.patchBuffer, progressCallback);
+                        romBuffer = PatchUPS.apply(romBuffer, state.patchBuffer);
                         break;
                     case 'BPS':
-                        patchedBuffer = PatchBPS.apply(state.romBuffer, state.patchBuffer, progressCallback);
+                        romBuffer = PatchBPS.apply(romBuffer, state.patchBuffer);
                         break;
-                    case 'XDELTA':
-                        patchedBuffer = PatchXDelta.apply(state.romBuffer, state.patchBuffer, progressCallback);
-                        break;
-                    default:
-                        throw new Error(`Formato de parche no soportado: ${state.patchFormat}`);
                 }
-
-                addLog(`Parche aplicado correctamente. Tamaño: ${RomDetector.formatFileSize(patchedBuffer.byteLength)}`, 'success');
-            } else {
-                addLog('Omitiendo parcheo (modo Solo Randomizar).', 'info');
+                addLog('Parche aplicado correctamente');
+                setProgress(10);
             }
 
-            setProgress(70);
+            // 2. Recoger opciones
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            const genFilter = dom.optGenFilter.value;
 
-            await sleep(50);
+            const options = {
+                mode: selectedMode,
+                seed: dom.seedInput.value || undefined,
+                randomMoves: dom.optMoves.checked,
+                randomAbilities: dom.optAbilities.checked,
+                randomEvolutions: dom.optEvolutions.checked,
+                noLegendaries: dom.optNoLegendaries.checked,
+                extraDifficulty: dom.optDifficulty.checked,
+                onlyGen: genFilter ? parseInt(genFilter) : null
+            };
 
-            // Aplicar randomización si está activada
-            if (dom.randomizerToggle.checked && state.romInfo && Randomizer.isSupported(state.romInfo.gameCode)) {
-                const mode = getSelectedMode();
-                const modeLabels = { full: 'Total', semi: 'Semi Random', progressive: 'Progresivo', semiProgressive: 'Semi Progresivo' };
-                addLog(`Aplicando randomización: modo ${modeLabels[mode] || mode}...`, 'info');
-                dom.patchStatusText.textContent = `Randomizando (${modeLabels[mode]})...`;
+            addLog('Modo: ' + selectedMode);
+            addLog('ROM: ' + state.romInfo.title + ' (' + state.romInfo.region + ')');
+            if (options.seed) addLog('Seed: ' + options.seed);
 
-                const randOptions = {
-                    mode: mode,
-                    seed: Date.now(),
-                };
+            setProgress(15);
 
-                const randResult = Randomizer.randomize(
-                    patchedBuffer,
-                    state.romInfo.gameCode,
-                    randOptions,
-                    (p) => setProgress(70 + p * 0.25)
-                );
+            // 3. Randomizar
+            addLog('Iniciando randomización…');
 
-                patchedBuffer = randResult.buffer;
-
-                if (randResult.stats.wildPokemon > 0) {
-                    addLog(`  → Pokémon salvajes randomizados: ${randResult.stats.wildPokemon}`, 'success');
+            const result = Randomizer.randomize(
+                romBuffer,
+                state.romInfo.gameCode,
+                options,
+                (pct) => {
+                    setProgress(15 + pct * 0.75); // 15-90%
                 }
-                if (randResult.stats.trainers > 0) {
-                    addLog(`  → Entrenadores randomizados: ${randResult.stats.trainers}`, 'success');
-                } else {
-                    addLog(`  → Entrenadores: sin cambios (modo ${modeLabels[mode]})`, 'info');
-                }
-                if (randResult.stats.moves > 0) {
-                    addLog(`  → Movimientos randomizados: ${randResult.stats.moves}`, 'success');
-                }
-
-                addLog(`Randomización completada (modo: ${modeLabels[mode]}).`, 'success');
-            }
+            );
 
             setProgress(95);
+            addLog('✅ Randomización completada');
 
-            // Guardar resultado
-            state.patchedBuffer = patchedBuffer;
+            // 4. Mostrar resultado
+            state.patchedBuffer = result.buffer;
+            state.resultSeed = result.seed;
 
-            // Calcular checksum de salida
-            const outputChecksum = RomDetector.calculateCRC32(new Uint8Array(patchedBuffer));
-            addLog(`CRC32 de salida: ${outputChecksum}`, 'info');
+            // Stats
+            const s = result.stats;
+            let statsHTML = '<div class="stats-grid">';
+            statsHTML += `<div class="stat-item"><span class="stat-num">${s.wildPokemon}</span><span class="stat-label">Salvajes</span></div>`;
+            statsHTML += `<div class="stat-item"><span class="stat-num">${s.trainers}</span><span class="stat-label">Entrenadores</span></div>`;
+            if (s.moves) statsHTML += `<div class="stat-item"><span class="stat-num">${s.moves}</span><span class="stat-label">Movimientos</span></div>`;
+            if (s.abilities) statsHTML += `<div class="stat-item"><span class="stat-num">${s.abilities}</span><span class="stat-label">Habilidades</span></div>`;
+            if (s.evolutions) statsHTML += `<div class="stat-item"><span class="stat-num">${s.evolutions}</span><span class="stat-label">Evoluciones</span></div>`;
+            if (s.starters) statsHTML += `<div class="stat-item"><span class="stat-num">${s.starters > 0 ? 3 : 0}</span><span class="stat-label">Iniciales</span></div>`;
+            statsHTML += '</div>';
 
+            dom.resultStats.innerHTML = statsHTML;
+            dom.resultSeed.textContent = result.seed;
+
+            dom.processTitle.textContent = '✅ ¡Listo!';
+            dom.processStatus.textContent = result.gameName + ' — ' + result.mode;
+            dom.resultCard.classList.remove('hidden');
             setProgress(100);
-            dom.patchStatusText.textContent = '¡Completado!';
 
-            // Mostrar card de éxito
-            dom.successCard.classList.remove('hidden');
-            dom.successInfo.textContent = `Tamaño final: ${RomDetector.formatFileSize(patchedBuffer.byteLength)} | CRC32: ${outputChecksum}`;
-
-            const successMsg = dom.randomizerToggle.checked && !state.patchFile 
-                ? '¡Randomización completada con éxito! Listo para descargar.'
-                : '¡Proceso completado con éxito! Listo para descargar.';
-            addLog(successMsg, 'success');
-
-            // Actualizar textos de éxito en UI
-            dom.successCard.querySelector('h3').textContent = dom.randomizerToggle.checked && !state.patchFile 
-                ? '¡ROM Randomizada con éxito!'
-                : '¡Parche aplicado con éxito!';
-            dom.downloadBtn.innerHTML = '📥 Descargar ROM Modificada';
-
-            // Configurar descarga
-            dom.downloadBtn.onclick = downloadPatchedRom;
+            addLog('Seed: ' + result.seed);
+            addLog('Listo para descargar');
+            
+            // Sugerir nombre de archivo
+            const defaultName = state.romFileName.replace(/\.gba$/i, '') + '_patchirisu';
+            const filenameInput = document.getElementById('downloadFilename');
+            if (filenameInput) filenameInput.value = defaultName;
 
         } catch (err) {
-            console.error('Error de parcheo:', err);
-            addLog(`ERROR: ${err.message}`, 'error');
-            dom.patchStatusText.textContent = 'Error';
+            console.error('Randomization error:', err);
+            addLog('ERROR: ' + err.message, 'error');
+            dom.processTitle.textContent = '❌ Error';
+            dom.processStatus.textContent = 'Algo salió mal';
             dom.errorCard.classList.remove('hidden');
             dom.errorText.textContent = err.message;
         }
     }
 
-    // ==========================================
-    // Descarga
-    // ==========================================
-    function downloadPatchedRom() {
+    function downloadResult() {
         if (!state.patchedBuffer) return;
-
-        const ext = FileHandler.getExtension(state.romFile.name);
-        let fileName = dom.outputFileName.value;
-        if (!fileName) {
-            fileName = state.patchFile ? 'rom_parcheada' : 'rom_random';
-        }
-        fileName += '.' + ext;
 
         const blob = new Blob([state.patchedBuffer], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement('a');
+
+        const input = document.getElementById('downloadFilename');
+        let filename = input ? input.value.trim() : '';
+        if (!filename) filename = 'patchirisu';
+
         a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
+        a.download = filename + '.gba';
         a.click();
-        document.body.removeChild(a);
-
-        // Liberar URL después de un momento
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-
-        addLog(`Descargado: ${fileName}`, 'success');
+        URL.revokeObjectURL(url);
     }
 
-    // ==========================================
-    // Reset
-    // ==========================================
-    function resetAll() {
-        // Limpiar estado
-        if (state.patchedBuffer) {
-            // Intentar limpiar memoria
-            state.patchedBuffer = null;
-        }
-
-        state.romFile = null;
+    function restart() {
         state.romBuffer = null;
         state.romInfo = null;
-        state.patchFile = null;
         state.patchBuffer = null;
         state.patchFormat = null;
         state.patchedBuffer = null;
-        state.outputFileName = 'rom_parcheada';
+        state.resultSeed = null;
+        state.romFileName = '';
 
-        // Reset UI
-        dom.romDropZone.classList.remove('has-file');
         dom.romInfoCard.classList.add('hidden');
-        dom.romWarning.classList.add('hidden');
-        dom.step1Next.disabled = true;
+        dom.btnToStep2.classList.add('hidden');
+        dom.romStatus.textContent = '';
+        dom.patchUpload.classList.add('hidden');
+        dom.seedInput.value = '';
+        dom.logBox.innerHTML = '';
 
-        dom.patchDropZone.classList.remove('has-file');
-        dom.patchInfoCard.classList.add('hidden');
-        dom.patchWarning.classList.add('hidden');
-        dom.step2Next.disabled = true;
-
-        dom.randomizerToggle.checked = false;
-        dom.randomizerOptions.classList.add('hidden');
-        dom.randomizerUnsupported.classList.add('hidden');
-        dom.outputFileName.value = '';
-
-        dom.patchLog.innerHTML = '';
-        dom.successCard.classList.add('hidden');
-        dom.errorCard.classList.add('hidden');
-        setProgress(0);
-        dom.patchStatusText.textContent = 'Preparando...';
-
-        // Volver al paso 1
-        goToStep(1);
+        showStep(1);
     }
 
     // ==========================================
-    // Modal
+    //  Event Listeners
     // ==========================================
-    function setupModal() {
-        dom.showLimitations.addEventListener('click', () => {
-            dom.limitationsModal.classList.remove('hidden');
-        });
 
-        dom.modalClose.addEventListener('click', () => {
-            dom.limitationsModal.classList.add('hidden');
-        });
+    // ROM drop/click
+    dom.romDropZone.addEventListener('click', () => dom.romFileInput.click());
+    dom.romFileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleROMFile(e.target.files[0]);
+    });
+    FileHandler.setupDropZone(dom.romDropZone, handleROMFile);
 
-        dom.limitationsModal.addEventListener('click', (e) => {
-            if (e.target === dom.limitationsModal) {
-                dom.limitationsModal.classList.add('hidden');
-            }
-        });
-    }
+    // Patch toggle
+    dom.togglePatchBtn.addEventListener('click', () => {
+        dom.patchUpload.classList.toggle('hidden');
+    });
+    dom.patchDropZone.addEventListener('click', () => dom.patchFileInput.click());
+    dom.patchFileInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handlePatchFile(e.target.files[0]);
+    });
+    FileHandler.setupDropZone(dom.patchDropZone, handlePatchFile);
 
-    // ==========================================
-    // Utilidades
-    // ==========================================
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    // Navigation
+    dom.btnToStep2.addEventListener('click', () => {
+        if (!dom.seedInput.value) newSeed();
+        showStep(2);
+    });
+    dom.btnBackToStep1.addEventListener('click', () => showStep(1));
+    dom.btnToStep3.addEventListener('click', () => {
+        showStep(3);
+        // Pequeño delay para que la UI se actualice antes de procesar
+        setTimeout(() => startRandomization(), 100);
+    });
 
-    function showToast(message, type = 'info') {
-        // Simple toast notification
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 0.8rem 1.5rem;
-            background: ${type === 'error' ? '#e74055' : '#3b82f6'};
-            color: white;
-            border-radius: 10px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-            z-index: 9999;
-            animation: fadeSlideIn 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        `;
-        toast.textContent = message;
-        document.body.appendChild(toast);
+    // Seed
+    dom.btnNewSeed.addEventListener('click', newSeed);
+    dom.btnCopySeed.addEventListener('click', () => copySeed(dom.seedInput));
+    dom.btnCopyResultSeed.addEventListener('click', () => copySeed(dom.resultSeed));
 
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
+    // Download & Restart
+    dom.btnDownload.addEventListener('click', downloadResult);
+    dom.btnRestart.addEventListener('click', restart);
 
-    // ==========================================
-    // Arranque
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', init);
+    // Init
+    showStep(1);
+
 })();

@@ -3,376 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Herramienta online para aplicar parches IPS, UPS, BPS y XDELTA a ROMs de Pokémon y otros juegos. Todo funciona en tu navegador, sin subir archivos a ningún servidor.">
-    <title>Patchirisu — Parcheador de ROMs Online</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta name="description" content="Patchirisu — Herramienta inteligente y divertida para Pokémon GBA.">
+    <title>Patchirisu</title>
     <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Animated background particles -->
-    <div class="bg-particles" id="bgParticles"></div>
+    <div class="bg-particles"></div>
 
-    <!-- Header -->
-    <header class="site-header">
-        <div class="header-content">
+    <div class="app-container" id="app">
+        <!-- HEADER -->
+        <header class="header">
             <div class="logo">
-                <img src="assets/logo.gif" alt="Patchirisu Logo" class="logo-icon">
-                <h1>Patch<span class="logo-accent">irisu</span></h1>
+                <img src="assets/logo.gif" alt="Patchirisu" class="logo-icon" onerror="this.style.display='none'">
+                <h1>Patchirisu</h1>
             </div>
-            <p class="tagline">Parchea tus ROMs directamente en el navegador</p>
+        </header>
+
+        <!-- STEP INDICATOR -->
+        <div class="steps-bar">
+            <div class="step-dot active" data-step="1"><span>1</span><small>ROM</small></div>
+            <div class="step-line"></div>
+            <div class="step-dot" data-step="2"><span>2</span><small>Opciones</small></div>
+            <div class="step-line"></div>
+            <div class="step-dot" data-step="3"><span>3</span><small>Randomizar</small></div>
         </div>
-    </header>
 
-    <!-- Main App Container -->
-    <main class="app-container">
-        <!-- Step Indicator -->
-        <nav class="step-indicator" id="stepIndicator">
-            <div class="step-item active" data-step="1">
-                <div class="step-circle">1</div>
-                <span class="step-label">ROM</span>
+        <!-- ===================== STEP 1: ROM ===================== -->
+        <section class="step-panel" id="step1">
+            <h2 class="step-title">📁 Selecciona tu ROM</h2>
+            <p class="step-desc">Arrastra o selecciona un archivo .gba de Pokémon</p>
+
+            <div class="drop-zone" id="romDropZone">
+                <div class="drop-zone-content">
+                    <div class="drop-icon">🎮</div>
+                    <p>Arrastra tu <strong>.gba</strong> aquí</p>
+                    <span class="drop-hint">o haz clic para seleccionar</span>
+                </div>
+                <input type="file" id="romFileInput" accept=".gba" hidden>
             </div>
-            <div class="step-line"></div>
-            <div class="step-item" data-step="2">
-                <div class="step-circle">2</div>
-                <span class="step-label">Parche</span>
+
+            <!-- Patch opcional -->
+            <div class="patch-section" id="patchSection">
+                <button class="btn-text" id="togglePatchBtn">
+                    ➕ Aplicar parche IPS/UPS/BPS (opcional)
+                </button>
+                <div class="patch-upload hidden" id="patchUpload">
+                    <div class="drop-zone drop-zone-sm" id="patchDropZone">
+                        <div class="drop-zone-content">
+                            <p>Arrastra tu parche <strong>.ips / .ups / .bps</strong></p>
+                        </div>
+                        <input type="file" id="patchFileInput" accept=".ips,.ups,.bps" hidden>
+                    </div>
+                </div>
             </div>
-            <div class="step-line"></div>
-            <div class="step-item" data-step="3">
-                <div class="step-circle">3</div>
-                <span class="step-label">Opciones</span>
+
+            <!-- ROM Info Card -->
+            <div class="rom-info-card hidden" id="romInfoCard">
+                <div class="rom-info-header">
+                    <span class="rom-badge" id="romBadge">GBA</span>
+                    <span class="rom-title" id="romTitle">—</span>
+                </div>
+                <div class="rom-info-details">
+                    <span id="romRegion">—</span>
+                    <span id="romSize">—</span>
+                    <span id="romCode">—</span>
+                </div>
+                <div class="rom-status" id="romStatus"></div>
             </div>
-            <div class="step-line"></div>
-            <div class="step-item" data-step="4">
-                <div class="step-circle">4</div>
-                <span class="step-label">Parchear</span>
+
+            <button class="btn-primary hidden" id="btnToStep2" disabled>
+                Continuar →
+            </button>
+        </section>
+
+        <!-- ===================== STEP 2: OPTIONS ===================== -->
+        <section class="step-panel hidden" id="step2">
+            <h2 class="step-title">⚡ Modo de Juego</h2>
+            <p class="step-desc">Elige cómo quieres randomizar tu ROM</p>
+
+            <!-- Mode Cards -->
+            <div class="mode-grid">
+                <label class="mode-card" data-mode="smart">
+                    <input type="radio" name="mode" value="smart" checked>
+                    <div class="mode-indicator"></div>
+                    <div class="mode-emoji">🧠</div>
+                    <div class="mode-name">Inteligente</div>
+                    <div class="mode-desc">BST + tipos + roles similares. Balance perfecto.</div>
+                    <span class="mode-badge recommended">RECOMENDADO</span>
+                </label>
+
+                <label class="mode-card" data-mode="progressive">
+                    <input type="radio" name="mode" value="progressive">
+                    <div class="mode-indicator"></div>
+                    <div class="mode-emoji">📈</div>
+                    <div class="mode-name">Progresivo</div>
+                    <div class="mode-desc">Reemplazos por BST similar. Salvajes + entrenadores.</div>
+                </label>
+
+                <label class="mode-card" data-mode="semiProgressive">
+                    <input type="radio" name="mode" value="semiProgressive">
+                    <div class="mode-indicator"></div>
+                    <div class="mode-emoji">🎯</div>
+                    <div class="mode-name">Semi-Progresivo</div>
+                    <div class="mode-desc">Solo salvajes cambian. Entrenadores intactos.</div>
+                </label>
+
+                <label class="mode-card" data-mode="full">
+                    <input type="radio" name="mode" value="full">
+                    <div class="mode-indicator"></div>
+                    <div class="mode-emoji">🎲</div>
+                    <div class="mode-name">Total</div>
+                    <div class="mode-desc">Caos completo. Todo aleatorio.</div>
+                    <span class="mode-badge chaotic">CAÓTICO</span>
+                </label>
             </div>
-        </nav>
 
-        <!-- Step Panels -->
-        <div class="steps-container">
-            <!-- STEP 1: Upload ROM -->
-            <section class="step-panel active" id="step1">
-                <div class="panel-header">
-                    <h2>📁 Sube tu ROM</h2>
-                    <p>Arrastra o selecciona el archivo ROM original</p>
-                </div>
+            <!-- Evolution Toggle -->
+            <div class="option-toggle-standalone">
+                <label class="toggle-row">
+                    <input type="checkbox" id="optEvolutions">
+                    <div class="toggle-switch"></div>
+                    <div class="toggle-label">
+                        <span>🔄 Random Evoluciones</span>
+                        <small>Cambia cadenas evolutivas (puede romper coherencia)</small>
+                    </div>
+                </label>
+            </div>
 
-                <div class="drop-zone" id="romDropZone">
-                    <div class="drop-zone-content">
-                        <div class="drop-icon">🎮</div>
-                        <p class="drop-text">Arrastra tu ROM aquí</p>
-                        <p class="drop-subtext">o haz clic para seleccionar</p>
-                        <div class="supported-formats">
-                            <span class="format-badge">.gba</span>
-                            <span class="format-badge">.gb</span>
-                            <span class="format-badge">.gbc</span>
-                            <span class="format-badge">.nds</span>
-                            <span class="format-badge">.iso</span>
-                        </div>
-                    </div>
-                    <input type="file" id="romFileInput" accept=".gba,.gb,.gbc,.nds,.iso" hidden>
-                </div>
-
-                <!-- ROM Info Card (hidden initially) -->
-                <div class="rom-info-card hidden" id="romInfoCard">
-                    <div class="info-card-header">
-                        <span class="info-icon">✅</span>
-                        <h3 id="romFileName">—</h3>
-                        <button class="btn-remove" id="romRemoveBtn" title="Quitar ROM">✕</button>
-                    </div>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Formato</span>
-                            <span class="info-value" id="romFormat">—</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Juego</span>
-                            <span class="info-value" id="romGameTitle">—</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Código</span>
-                            <span class="info-value" id="romGameCode">—</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Región</span>
-                            <span class="info-value" id="romRegion">—</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Tamaño</span>
-                            <span class="info-value" id="romSize">—</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">CRC32</span>
-                            <span class="info-value mono" id="romChecksum">—</span>
-                        </div>
-                    </div>
-                    <!-- Warnings -->
-                    <div class="warning-box hidden" id="romWarning">
-                        <span class="warning-icon">⚠️</span>
-                        <p id="romWarningText"></p>
+            <!-- Advanced Options -->
+            <details class="advanced-panel" id="advancedOptions">
+                <summary class="advanced-toggle">⚙️ Opciones avanzadas</summary>
+                <div class="advanced-grid">
+                    <label class="toggle-row">
+                        <input type="checkbox" id="optMoves">
+                        <div class="toggle-switch"></div>
+                        <span>🗡️ Random Movimientos</span>
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" id="optAbilities">
+                        <div class="toggle-switch"></div>
+                        <span>✨ Random Habilidades</span>
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" id="optNoLegendaries">
+                        <div class="toggle-switch"></div>
+                        <span>🚫 Sin Legendarios</span>
+                    </label>
+                    <label class="toggle-row">
+                        <input type="checkbox" id="optDifficulty">
+                        <div class="toggle-switch"></div>
+                        <span>💀 Dificultad Extra (+15% niveles)</span>
+                    </label>
+                    <div class="gen-selector">
+                        <span>🎮 Generación:</span>
+                        <select id="optGenFilter">
+                            <option value="">Todas (1-3)</option>
+                            <option value="1">Solo Gen 1</option>
+                            <option value="2">Solo Gen 2</option>
+                            <option value="3">Solo Gen 3</option>
+                        </select>
                     </div>
                 </div>
+            </details>
 
-                <div class="step-actions">
-                    <button class="btn btn-primary" id="step1Next" disabled>
-                        Siguiente <span class="btn-arrow">→</span>
-                    </button>
+            <!-- Seed -->
+            <div class="seed-section">
+                <label class="seed-label">🎲 Seed</label>
+                <div class="seed-input-group">
+                    <input type="text" id="seedInput" class="seed-input" placeholder="Auto-generada" maxlength="9">
+                    <button class="btn-icon" id="btnNewSeed" title="Nueva seed">🔄</button>
+                    <button class="btn-icon" id="btnCopySeed" title="Copiar seed">📋</button>
                 </div>
-            </section>
+                <small class="seed-hint">Misma seed + misma ROM = mismo resultado</small>
+            </div>
 
-            <!-- STEP 2: Upload Patch -->
-            <section class="step-panel" id="step2">
-                <div class="panel-header">
-                    <h2>🩹 Sube tu Parche</h2>
-                    <p>Arrastra o selecciona el archivo de parche</p>
+            <div class="step-buttons">
+                <button class="btn-secondary" id="btnBackToStep1">← Atrás</button>
+                <button class="btn-primary" id="btnToStep3">Empezar 🚀</button>
+            </div>
+        </section>
+
+        <!-- ===================== STEP 3: PROCESS ===================== -->
+        <section class="step-panel hidden" id="step3">
+            <h2 class="step-title" id="processTitle">🚀 Randomizando…</h2>
+            <p class="step-desc" id="processStatus">Procesando tu ROM</p>
+
+            <!-- Progress -->
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
                 </div>
+                <span class="progress-text" id="progressText">0%</span>
+            </div>
 
-                <div class="drop-zone" id="patchDropZone">
-                    <div class="drop-zone-content">
-                        <div class="drop-icon">📦</div>
-                        <p class="drop-text">Arrastra tu parche aquí</p>
-                        <p class="drop-subtext">o haz clic para seleccionar</p>
-                        <div class="supported-formats">
-                            <span class="format-badge">.ips</span>
-                            <span class="format-badge">.ups</span>
-                            <span class="format-badge">.bps</span>
-                            <span class="format-badge">.xdelta</span>
-                        </div>
-                    </div>
-                    <input type="file" id="patchFileInput" accept=".ips,.ups,.bps,.xdelta,.xdelta3,.vcdiff" hidden>
+            <!-- Log -->
+            <div class="log-box" id="logBox"></div>
+
+            <!-- Result (hidden initially) -->
+            <div class="result-card hidden" id="resultCard">
+                <div class="result-icon">✅</div>
+                <h3>¡ROM randomizada!</h3>
+                <div class="result-stats" id="resultStats"></div>
+                <div class="result-seed">
+                    <span>Seed:</span>
+                    <code id="resultSeed">—</code>
+                    <button class="btn-icon btn-sm" id="btnCopyResultSeed" title="Copiar">📋</button>
                 </div>
-
-                <!-- Patch Info Card -->
-                <div class="rom-info-card hidden" id="patchInfoCard">
-                    <div class="info-card-header">
-                        <span class="info-icon">✅</span>
-                        <h3 id="patchFileName">—</h3>
-                        <button class="btn-remove" id="patchRemoveBtn" title="Quitar Parche">✕</button>
-                    </div>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Formato</span>
-                            <span class="info-value" id="patchFormat">—</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Tamaño</span>
-                            <span class="info-value" id="patchSize">—</span>
-                        </div>
-                    </div>
-                    <div class="warning-box hidden" id="patchWarning">
-                        <span class="warning-icon">⚠️</span>
-                        <p id="patchWarningText"></p>
+                <div class="download-filename-wrapper">
+                    <label for="downloadFilename" class="filename-label">Nombre del archivo:</label>
+                    <div class="filename-input-group">
+                        <input type="text" id="downloadFilename" class="filename-input" spellcheck="false" placeholder="patchirisu">
+                        <span class="filename-ext">.gba</span>
                     </div>
                 </div>
 
-                <div class="step-actions">
-                    <button class="btn btn-secondary" id="step2Back">
-                        <span class="btn-arrow">←</span> Atrás
-                    </button>
-                    <button class="btn btn-ghost" id="step2Skip">
-                        🎲 Solo Randomizar
-                    </button>
-                    <button class="btn btn-primary" id="step2Next" disabled>
-                        Siguiente <span class="btn-arrow">→</span>
-                    </button>
-                </div>
-            </section>
+                <button class="btn-primary btn-download" id="btnDownload">
+                    💾 Descargar ROM
+                </button>
+            </div>
 
-            <!-- STEP 3: Options / Randomizer -->
-            <section class="step-panel" id="step3">
-                <div class="panel-header">
-                    <h2>⚙️ Opciones</h2>
-                    <p>Configura opciones adicionales antes de parchear</p>
-                </div>
+            <!-- Error (hidden) -->
+            <div class="error-card hidden" id="errorCard">
+                <div class="result-icon">❌</div>
+                <h3>Error</h3>
+                <p id="errorText"></p>
+            </div>
 
-                <div class="options-container">
-                    <!-- Advanced Randomizer Section -->
-                    <div class="option-group">
-                        <div class="option-group-header">
-                            <h3>🎲 Randomizador Avanzado</h3>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="randomizerToggle">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
-                        <p class="option-desc">Elige un modo de aleatorización tras aplicar el parche. <strong>Disponible para juegos GBA y NDS de Pokémon.</strong></p>
+            <button class="btn-secondary" id="btnRestart">🔄 Empezar de nuevo</button>
+        </section>
 
-                        <div class="randomizer-options hidden" id="randomizerOptions">
-                            <!-- Mode Selection -->
-                            <div class="rand-modes-grid">
-                                <!-- Mode 1: Progressive -->
-                                <label class="rand-mode-card" id="modeCardProgressive">
-                                    <input type="radio" name="randMode" value="progressive" checked>
-                                    <div class="mode-card-inner">
-                                        <div class="mode-header">
-                                            <span class="mode-icon">📈</span>
-                                            <span class="mode-title">Randomizador Progresivo</span>
-                                        </div>
-                                        <p class="mode-desc">Pokémon reemplazados por otros de stats similares (BST). Mantiene progresión natural — sin legendarios en rutas iniciales.</p>
-                                        <div class="mode-tags">
-                                            <span class="mode-tag tag-wild">Salvajes BST</span>
-                                            <span class="mode-tag tag-trainer">Entrenadores BST</span>
-                                        </div>
-                                    </div>
-                                </label>
+        <!-- ===================== SEO SECTION ===================== -->
+        <details class="seo-section">
+            <summary><h2>Compatible con ROMs de GBA</h2></summary>
+            <div class="seo-content">
+                <p>
+                    Patchirisu es un randomizador de Pokémon GBA para jugar como tú quieras:<br><br>
+                    puedes hacer una run equilibrada y lógica<br>
+                    o liarla completamente y ver el mundo arder<br><br>
+                    Tú decides.<br><br>
+                    Subes tu ROM, eliges el modo y descargas.<br>
+                    Sin spoilers, sin configuraciones raras, sin complicarte la vida.
+                </p>
+                <ul>
+                    <li><strong>Pokémon FireRed Randomizer y LeafGreen</strong><br>Kanto pero distinto cada vez. Puedes mantener la progresión o romperla completamente.</li>
+                    <li><strong>Pokémon Emerald Randomizer</strong><br>Hoenn con sorpresa constante. Desde runs equilibradas hasta auténtico caos.</li>
+                    <li><strong>Pokémon Ruby & Sapphire Randomizer</strong><br>La experiencia clásica, pero con la opción de convertirla en una locura total.</li>
+                </ul>
 
-                                <!-- Mode 2: Semi-Progressive -->
-                                <label class="rand-mode-card" id="modeCardSemiProg">
-                                    <input type="radio" name="randMode" value="semiProgressive">
-                                    <div class="mode-card-inner">
-                                        <div class="mode-header">
-                                            <span class="mode-icon">🎯</span>
-                                            <span class="mode-title">Semi Progresivo</span>
-                                        </div>
-                                        <p class="mode-desc">Salvajes por stats similares, entrenadores mantienen equipos originales. La opción más equilibrada.</p>
-                                        <div class="mode-tags">
-                                            <span class="mode-tag tag-wild">Salvajes BST</span>
-                                            <span class="mode-tag tag-keep">Entrenadores Originales ✓</span>
-                                        </div>
-                                    </div>
-                                </label>
-                            </div>
+                <h3>¿Qué puedes hacer con este Pokémon GBA Randomizer?</h3>
+                <p>
+                    Tienes dos formas de jugar:<br><br>
+                    
+                    <strong>Modo inteligente</strong><br>
+                    Respeta stats<br>
+                    Mantiene progresión<br>
+                    Evita cosas rotísimas al principio<br>
+                    Ideal para una run divertida y jugable<br><br>
+                    
+                    <strong>Modo caos (random total)</strong><br>
+                    Todo completamente aleatorio<br>
+                    Puede salir cualquier cosa<br>
+                    Sí, puede romper la partida<br>
+                    Pero ese es el punto<br><br>
+                    
+                    Además, puedes usar una <strong>seed</strong> para repetir la misma run o pasársela a tus amigos.
+                </p>
+            </div>
+        </details>
 
-                            <!-- Mode Warning -->
-                            <div class="mode-warning" id="modeWarning">
-                                <span class="warning-icon">⚠️</span>
-                                <p id="modeWarningText">El modo Total puede generar desequilibrios severos. Legendarios pueden aparecer en rutas iniciales.</p>
-                            </div>
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p>Todo el procesamiento es local. Ningún archivo se sube a servidores externos.</p>
+            <p><a href="javascript:void(0)" onclick="document.getElementById('limitationsModal').classList.remove('hidden')">Ver limitaciones</a></p>
+            <p>Patchirisu no distribuye ni almacena ROMs. Usa solo archivos de tu propiedad.</p>
+        </footer>
+    </div>
 
-                            <!-- Active mode summary -->
-                            <div class="mode-summary" id="modeSummary">
-                                <h4>Resumen del modo seleccionado:</h4>
-                                <ul id="modeSummaryList">
-                                    <li>✅ Pokémon salvajes: <strong>Aleatorios (sin restricción)</strong></li>
-                                    <li>✅ Entrenadores: <strong>Aleatorios (sin restricción)</strong></li>
-                                    <li>✅ Ítems: <strong>Aleatorios</strong></li>
-                                    <li>❌ Restricción BST: <strong>No</strong></li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        <div class="randomizer-unsupported hidden" id="randomizerUnsupported">
-                            <div class="warning-box">
-                                <span class="warning-icon">ℹ️</span>
-                                <p>El randomizador está disponible para ROMs GBA (FireRed, Emerald, Ruby, Sapphire) y NDS (Diamond, Pearl, Platinum, HeartGold, SoulSilver, Black, White, B2W2) de Pokémon. Tu ROM actual no es compatible.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Output Name -->
-                    <div class="option-group">
-                        <h3>📝 Nombre del archivo de salida</h3>
-                        <div class="output-name-input">
-                            <input type="text" id="outputFileName" placeholder="rom_parcheada">
-                            <span class="output-ext" id="outputExt">.gba</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="step-actions">
-                    <button class="btn btn-secondary" id="step3Back">
-                        <span class="btn-arrow">←</span> Atrás
-                    </button>
-                    <button class="btn btn-primary" id="step3Next">
-                        <span id="step3NextLabel">Aplicar Parche</span> <span class="btn-arrow">→</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- STEP 4: Patch & Download -->
-            <section class="step-panel" id="step4">
-                <div class="panel-header">
-                    <h2>🚀 Parcheando</h2>
-                    <p id="patchStatusText">Preparando...</p>
-                </div>
-
-                <div class="patch-progress-container">
-                    <div class="progress-bar-wrapper">
-                        <div class="progress-bar" id="progressBar">
-                            <div class="progress-fill" id="progressFill"></div>
-                        </div>
-                        <span class="progress-percent" id="progressPercent">0%</span>
-                    </div>
-
-                    <div class="patch-log" id="patchLog">
-                        <!-- Log entries appear here -->
-                    </div>
-                </div>
-
-                <!-- Success Card (hidden until done) -->
-                <div class="success-card hidden" id="successCard">
-                    <div class="success-icon">🎉</div>
-                    <h3>¡Parche aplicado con éxito!</h3>
-                    <p id="successInfo"></p>
-                    <button class="btn btn-download" id="downloadBtn">
-                        📥 Descargar ROM Parcheada
-                    </button>
-                </div>
-
-                <!-- Error Card (hidden unless error) -->
-                <div class="error-card hidden" id="errorCard">
-                    <div class="error-icon">❌</div>
-                    <h3>Error al parchear</h3>
-                    <p id="errorText"></p>
-                </div>
-
-                <div class="step-actions">
-                    <button class="btn btn-secondary" id="step4Reset">
-                        🔄 Empezar de nuevo
-                    </button>
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <!-- Limitations Modal -->
-    <div class="modal-overlay hidden" id="limitationsModal">
+    <!-- Modal Limitaciones -->
+    <div id="limitationsModal" class="modal hidden">
         <div class="modal-content">
-            <button class="modal-close" id="modalClose">✕</button>
-            <h2>⚠️ Limitaciones</h2>
-            <div class="limitations-list">
-                <div class="limitation-item">
-                    <h4>Archivos .iso</h4>
-                    <p>Similar a .3ds, los archivos ISO pueden ser muy grandes. El procesamiento depende de la memoria disponible del navegador.</p>
-                </div>
-                <div class="limitation-item">
-                    <h4>XDELTA</h4>
-                    <p>La implementación XDELTA (VCDIFF) es pura JavaScript. Funciona correctamente con la mayoría de parches, pero algunos con compresión secundaria podrían no ser compatibles.</p>
-                </div>
-                <div class="limitation-item">
-                    <h4>Randomizador</h4>
-                    <p>El randomizador es básico, compatible con ROMs GBA (FireRed, Emerald, Ruby, Sapphire) y NDS (Diamond, Pearl, Platinum, HGSS, BW, B2W2) de Pokémon. No es comparable al Universal Pokémon Randomizer.</p>
-                </div>
-                <div class="limitation-item">
-                    <h4>Seguridad</h4>
-                    <p>Todo el procesamiento ocurre en tu navegador. Ningún archivo se sube a ningún servidor. Los datos se limpian de la memoria al finalizar. Patchirisu no distribuye ni almacena ROMs.</p>
-                </div>
-            </div>
+            <h3>Limitaciones del Randomizador</h3>
+            <ul>
+                <li><strong>Textos originales intactos:</strong> Los diálogos del juego (como el rival diciendo "¡Yo elijo a Squirtle!") seguirán mencionando a los Pokémon originales en texto, aunque el combate esté randomizado y obtengas otro.</li>
+                <li><strong>Encuentros estáticos e Intercambios:</strong> Varios encuentros estáticos especiales (como Snorlax o los legendarios) o intercambios In-Game pueden seguir siendo los originales en esta primera versión.</li>
+                <li><strong>Modo Caos (Softlocks):</strong> Al no haber restricciones en el modo caos absoluto, es posible recibir un Pokémon inicial que solo conozca movimientos inofensivos (Splash, Tail Whip), lo que puede hacer la aventura muy difícil al principio.</li>
+            </ul>
+            <button class="btn-primary" onclick="document.getElementById('limitationsModal').classList.add('hidden')">Entendido</button>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="site-footer">
-        <div class="footer-content">
-            <p>Todo el procesamiento es local. Ningún archivo se sube a servidores externos.</p>
-            <div class="footer-links">
-                <button class="link-btn" id="showLimitations">Ver limitaciones</button>
-            </div>
-            <p class="footer-disclaimer">Patchirisu no distribuye ni almacena ROMs. Usa solo archivos de tu propiedad.</p>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
+    <!-- Scripts (orden importa: data → patches → detector → handler → randomizer → app) -->
+    <script src="js/pokemon-data.js"></script>
     <script src="js/rom-detector.js"></script>
+    <script src="js/file-handler.js"></script>
     <script src="js/patch-ips.js"></script>
     <script src="js/patch-ups.js"></script>
     <script src="js/patch-bps.js"></script>
-    <script src="js/patch-xdelta.js"></script>
     <script src="js/randomizer.js"></script>
-    <script src="js/file-handler.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

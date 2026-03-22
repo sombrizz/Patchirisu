@@ -1,151 +1,70 @@
 /**
- * file-handler.js
- * Maneja drag & drop, file inputs, validación de formatos,
- * y lectura de archivos a ArrayBuffer.
+ * file-handler.js — Gestión de archivos para Smart GBA Randomizer
+ * Solo soporta: .gba + .ips/.ups/.bps
  */
 
 const FileHandler = (() => {
     'use strict';
 
-    // Extensiones válidas
-    const ROM_EXTENSIONS = ['gba', 'gb', 'gbc', 'nds', 'iso'];
-    const PATCH_EXTENSIONS = ['ips', 'ups', 'bps', 'xdelta', 'xdelta3', 'vcdiff'];
+    const ROM_EXTENSIONS = ['gba'];
+    const PATCH_EXTENSIONS = ['ips', 'ups', 'bps'];
 
-    /**
-     * Obtiene la extensión de un nombre de archivo (sin punto, minúsculas)
-     */
     function getExtension(filename) {
         const parts = filename.split('.');
-        if (parts.length < 2) return '';
-        return parts[parts.length - 1].toLowerCase();
+        return parts.length > 1 ? parts.pop().toLowerCase() : '';
     }
 
-    /**
-     * Verifica si la extensión es una ROM válida
-     */
-    function isValidROM(filename) {
+    function isROM(filename) {
         return ROM_EXTENSIONS.includes(getExtension(filename));
     }
 
-    /**
-     * Verifica si la extensión es un parche válido
-     */
-    function isValidPatch(filename) {
+    function isPatch(filename) {
         return PATCH_EXTENSIONS.includes(getExtension(filename));
     }
 
-    /**
-     * Detecta el formato de parche analizando el contenido del archivo
-     */
     function detectPatchFormat(buffer) {
-        if (PatchIPS.isIPS(buffer)) return 'IPS';
-        if (PatchUPS.isUPS(buffer)) return 'UPS';
-        if (PatchBPS.isBPS(buffer)) return 'BPS';
-        if (PatchXDelta.isXDelta(buffer)) return 'XDELTA';
+        if (buffer.byteLength < 5) return null;
+        const bytes = new Uint8Array(buffer);
+
+        // IPS: "PATCH"
+        if (bytes[0] === 0x50 && bytes[1] === 0x41 && bytes[2] === 0x54 &&
+            bytes[3] === 0x43 && bytes[4] === 0x48) return 'IPS';
+
+        // UPS: "UPS1"
+        if (bytes[0] === 0x55 && bytes[1] === 0x50 && bytes[2] === 0x53 &&
+            bytes[3] === 0x31) return 'UPS';
+
+        // BPS: "BPS1"
+        if (bytes[0] === 0x42 && bytes[1] === 0x50 && bytes[2] === 0x53 &&
+            bytes[3] === 0x31) return 'BPS';
+
         return null;
     }
 
-    /**
-     * Lee un File en un ArrayBuffer
-     * @param {File} file
-     * @returns {Promise<ArrayBuffer>}
-     */
     function readFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(new Error('Error al leer el archivo: ' + file.name));
+            reader.onerror = () => reject(new Error('Error al leer: ' + file.name));
             reader.readAsArrayBuffer(file);
         });
     }
 
-    /**
-     * Configura una zona de drag & drop
-     * @param {HTMLElement} dropZone - Elemento de la zona de drop
-     * @param {HTMLInputElement} fileInput - Input file asociado
-     * @param {Function} validator - Función para validar el nombre del archivo
-     * @param {Function} onFile - Callback cuando se selecciona un archivo válido
-     * @param {Function} onError - Callback para errores
-     */
-    function setupDropZone(dropZone, fileInput, validator, onFile, onError) {
-        // Click para abrir selector
-        dropZone.addEventListener('click', () => fileInput.click());
-
-        // Drag events
-        dropZone.addEventListener('dragenter', (e) => {
+    function setupDropZone(element, onFile) {
+        element.addEventListener('dragover', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add('drag-over');
+            element.classList.add('drag-over');
         });
-
-        dropZone.addEventListener('dragover', (e) => {
+        element.addEventListener('dragleave', () => {
+            element.classList.remove('drag-over');
+        });
+        element.addEventListener('drop', async (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add('drag-over');
-        });
-
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Solo quitar la clase si el mouse realmente salió del dropZone
-            if (!dropZone.contains(e.relatedTarget)) {
-                dropZone.classList.remove('drag-over');
-            }
-        });
-
-        dropZone.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove('drag-over');
-
-            const files = e.dataTransfer.files;
-            if (files.length === 0) return;
-
-            const file = files[0];
-            if (!validator(file.name)) {
-                onError(`Formato no soportado: .${getExtension(file.name)}`);
-                return;
-            }
-
-            try {
-                const buffer = await readFile(file);
-                onFile(file, buffer);
-            } catch (err) {
-                onError(err.message);
-            }
-        });
-
-        // File input change
-        fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (!validator(file.name)) {
-                onError(`Formato no soportado: .${getExtension(file.name)}`);
-                fileInput.value = '';
-                return;
-            }
-
-            try {
-                const buffer = await readFile(file);
-                onFile(file, buffer);
-            } catch (err) {
-                onError(err.message);
-            }
-
-            // Reset input para permitir seleccionar el mismo archivo
-            fileInput.value = '';
+            element.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) onFile(file);
         });
     }
 
-    return {
-        ROM_EXTENSIONS,
-        PATCH_EXTENSIONS,
-        getExtension,
-        isValidROM,
-        isValidPatch,
-        detectPatchFormat,
-        readFile,
-        setupDropZone,
-    };
+    return { isROM, isPatch, getExtension, detectPatchFormat, readFile, setupDropZone, ROM_EXTENSIONS, PATCH_EXTENSIONS };
 })();
